@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # vLLM模型部署脚本
-# 用法: ./deploy_vllm.sh [模型名] [端口号(可选)]
+# 用法: 
+#   ./deploy_vllm.sh [模型名] [端口号(可选)]  # 部署指定模型
+#   ./deploy_vllm.sh cancel                  # 仅停止服务
 
 # 配置区 (根据实际环境修改)
 MODEL_DIR="/data/lht/ckpt"            # 模型根目录
@@ -19,8 +21,40 @@ declare -A MODEL_MAP=(
 )
 
 # 获取参数
-MODEL_NAME=${1:-"Qwen2.5-7B"}        # 默认部署Qwen2.5
+OPERATION=${1:-"Qwen2.5-7B"}        # 默认操作是部署Qwen2.5
 PORT=${2:-$DEFAULT_PORT}
+
+# 停止服务函数
+stop_service() {
+    local port=$1
+    echo "正在停止服务(端口: $port)..."
+    {
+        sudo kill -9 $(sudo lsof -t -i :$port 2>/dev/null) &&
+        echo "已终止端口 $port 的进程"
+    } || echo "未找到占用端口 $port 的进程"
+    sleep 1
+
+    pkill -f "python3.12 -c from multiprocessing.spawn" 2>/dev/null &&
+    echo "已清理残留子进程" || echo "未找到相关子进程"
+    sleep 1
+
+    # 检查端口释放状态
+    if lsof -i :$port > /dev/null; then
+        echo "警告: 端口 $port 仍被占用，可能被其他进程使用"
+        return 1
+    fi
+    return 0
+}
+
+# 如果是cancel操作，只停止服务
+if [[ "$OPERATION" == "cancel" ]]; then
+    stop_service $PORT
+    echo "服务已停止"
+    exit 0
+fi
+
+# 否则是部署模型操作
+MODEL_NAME=$OPERATION
 
 # 检查模型是否存在
 if [[ -z "${MODEL_MAP[$MODEL_NAME]}" ]]; then
@@ -35,21 +69,8 @@ if [[ ! -d "$MODEL_PATH" ]]; then
     exit 1
 fi
 
-# 停止已有服务
-echo "正在停止已有服务..."
-{
-    sudo kill -9 $(sudo lsof -t -i :$PORT 2>/dev/null) &&
-    echo "已终止端口 $PORT 的进程"
-} || echo "未找到占用端口 $PORT 的进程"
-sleep 1
-
-pkill -f "python3.12 -c from multiprocessing.spawn" 2>/dev/null &&
-echo "已清理残留子进程" || echo "未找到相关子进程"
-sleep 1
-
-# 检查端口释放状态
-if lsof -i :$PORT > /dev/null; then
-    echo "警告: 端口 $PORT 仍被占用，可能被其他进程使用"
+# 先停止服务
+if ! stop_service $PORT; then
     exit 1
 fi
 
