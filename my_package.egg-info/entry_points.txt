@@ -1,2 +1,0 @@
-[console_scripts]
-change_model = my_package.change_model:main
