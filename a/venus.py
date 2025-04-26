@@ -3,8 +3,8 @@ from typing import Optional, Callable, Iterable, Any, List
 from langchain import VenusLLM
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
-from task import run_concurrently
-from parse import extract_dict, extract_list
+from .task import run_concurrently
+from .parse import extract_dict, extract_list
 
 
 class Venus:

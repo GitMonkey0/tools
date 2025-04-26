@@ -1,7 +1,7 @@
 from langchain_openai import ChatOpenAI
-from task import run_concurrently
+from .task import run_concurrently
 from typing import Optional, Callable, Iterable, Any, List, Dict
-from parse import extract_dict, extract_list
+from .parse import extract_dict, extract_list
 
 
 class WBZ:

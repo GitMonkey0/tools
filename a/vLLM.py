@@ -1,7 +1,7 @@
 from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
 from typing import Optional, Dict, List
-from parse import extract_dict, extract_list
+from .parse import extract_dict, extract_list
 
 class VLLMGenerator:
     def __init__(
