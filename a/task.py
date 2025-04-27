@@ -1,11 +1,13 @@
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from typing import Callable, Iterable, Any, List, Dict, Tuple, Optional
+import time
+
 
 def run_concurrently(
-    tasks: Iterable[Dict[str, Any]],
-    max_workers: int = 4,
-    use_processes: bool = False,
-    validation_func: Optional[Callable[[Any], bool]] = None  # 可选的自定义检验函数
+        tasks: Iterable[Dict[str, Any]],
+        max_workers: int = 4,
+        use_processes: bool = False,
+        validation_func: Optional[Callable[[Any], bool]] = None  # 可选的自定义检验函数
 ) -> List[Any]:
     """
     并行执行多个任务，每个任务可以有不同的函数和参数，并保持结果顺序与输入任务一致。
@@ -27,6 +29,9 @@ def run_concurrently(
     # 将任务转换为 (index, task) 的形式，以便后续排序
     indexed_tasks = list(enumerate(tasks))
     results = [None] * len(indexed_tasks)
+    total_tasks = len(indexed_tasks)
+    last_print_time = 0
+    print_interval = 5  # 每5秒打印一次进度
 
     with Executor(max_workers=max_workers) as executor:
         # 提交所有任务
@@ -42,6 +47,14 @@ def run_concurrently(
 
         # 按完成顺序处理任务，但按原始索引存储结果
         while futures:
+            current_time = time.time()
+            # 每隔print_interval秒打印一次进度
+            if current_time - last_print_time >= print_interval:
+                completed = sum(1 for r in results if r is not None)
+                remaining = total_tasks - completed
+                print(f"Progress: {completed}/{total_tasks} completed, {remaining} remaining")
+                last_print_time = current_time
+
             # 等待任意一个任务完成
             done, _ = as_completed(futures), None
             for future in done:
