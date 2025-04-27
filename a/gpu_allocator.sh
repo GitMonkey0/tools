@@ -3,9 +3,9 @@
 # 默认参数配置
 MEMORY_THRESHOLD=8000        # 显存使用阈值(MB)
 NEEDED_GPUS=3                # 需要的GPU数量
-OCCUPY_SCRIPT="1.py"         # 占卡脚本路径
+OCCUPY_SCRIPT="lock_gpu.py"  # 占卡脚本路径
 TRAIN_COMMAND="llamafactory-cli train examples/train_full/qwen2.5_full_sft_1e-5.yaml"
-CHECK_INTERVAL=5             # 监控频率(秒)
+CHECK_INTERVAL=20             # 监控频率(秒)
 
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
@@ -35,7 +35,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  -t, --threshold     显存使用阈值(MB) (默认: 8000)"
             echo "  -n, --needed-gpus   需要的GPU数量 (默认: 3)"
-            echo "  -o, --occupy-script 占卡脚本路径 (默认: 1.py)"
+            echo "  -o, --occupy-script 占卡脚本路径 (默认: lock_gpu.py)"
             echo "  -c, --train-command 训练命令 (默认: llamafactory-cli train...)"
             echo "  -i, --check-interval 监控频率(秒) (默认: 5)"
             echo "  -h, --help          显示帮助信息"
@@ -66,9 +66,12 @@ function cleanup() {
 
 function get_free_gpus() {
     # 获取当前空闲GPU列表(未被占用且显存低于阈值)
+    # 构建已占用GPU的正则表达式
+    local occupied_regex="^($(IFS="|"; echo "${!OCCUPY_PIDS[*]}"))$"
+
     nvidia-smi --query-gpu=index,memory.used --format=csv,noheader,nounits 2>/dev/null | \
-    awk -F', ' -v threshold="$MEMORY_THRESHOLD" \
-    '$2 < threshold && !($1 in occupied) {print $1}' occupied=$(IFS=,; echo "${!OCCUPY_PIDS[*]}") | \
+    awk -F', ' -v threshold="$MEMORY_THRESHOLD" -v occupied_regex="$occupied_regex" \
+    '$2 < threshold && $1 !~ occupied_regex {print $1}' | \
     sort -n
 }
 
