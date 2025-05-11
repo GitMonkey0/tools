@@ -1,13 +1,19 @@
+# SFTConfig
+model_path:
+dataset_text_field: text
+max_length: 4096
+completion_only_loss: true
+
 # Directory & File Management
-output_dir: null
+output_dir: ./outputs
 overwrite_output_dir: true
-logging_dir: null
+logging_dir: ./logs
 
 # Training Control
 do_train: true
-do_eval: false
+do_eval: true
 do_predict: false
-num_train_epochs: 3.0
+num_train_epochs: 2.0
 max_steps: -1
 
 # Batch Configuration
@@ -18,21 +24,21 @@ eval_accumulation_steps: 2
 dataloader_num_workers: 4
 
 # Optimization
-learning_rate: 1e-5
+learning_rate: 1.0e-5
 weight_decay: 0.0
 warmup_ratio: 0.1
 #warmup_steps: 0.01
 gradient_checkpointing: false
 
 # Evaluation
-eval_strategy: "no"
-eval_steps: null
+eval_strategy: "steps"
+eval_steps: 0.2
 
 # Logging & Saving
 logging_strategy: "steps"
 logging_steps: 1
 save_strategy: "steps"
-save_steps: 0.1
+save_steps: 0.2
 save_total_limit: null
 save_only_model: true
 
